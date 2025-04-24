@@ -73,3 +73,33 @@ if st.sidebar.button('Predict Price'):
 with st.expander("Show input data"):
     st.write(input_df)
 
+
+st.title("Why this matters")
+
+st.text("""
+• Faster, data-driven valuations – machine-learning models like the one behind
+  this demo learn from thousands of Kansas-City-area deals and 50+ local
+  features (size, income, education, market trends), letting you surface an
+  evidence-based price in seconds rather than days.
+
+• Accuracy that compounds – recent industry studies show up to 73 % of CRE
+  firms already apply ML for decision-making, and more than 80 % plan to
+  boost ML budgets in the next 2-3 years. Early adopters report valuation
+  error reductions of 20-40 %.
+
+• Smarter risk management – by fusing census, permit and demographic
+  signals, the model spots over- or under-priced assets long before they
+  hit your books, helping investors and lenders avoid seven-figure mistakes.
+
+• Competitive differentiation – clients increasingly expect Redfin- or
+  Zillow-level instant estimates. Packaging your own ML pipeline behind a
+  simple UI positions you as a tech-forward partner, not just another
+  brokerage or contractor.
+
+- A small, 5% improvement in predictive accuracy can save tens of thousands per transaction. On a $1M property, that’s potentially $50K of value generated
+
+Try adjusting the sliders on the left; each change re-runs the model in
+real time, showing how seemingly small differences (an extra bathroom, a
+higher-income zip code) move the projected sale price.
+""".strip())
+
