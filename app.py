@@ -72,7 +72,7 @@ footer {{
 st.markdown(custom_css, unsafe_allow_html=True)
 
 # --- Logo & Branded Header ---
-st.image("/Users/alexandrogarcia/Documents/Real-World Case Studies/Real_estate_prototype/odyyn copy.png", width=400,  )  # replace with your logo URL or local path
+st.image("odyyn copy.png", width=400,  )  # replace with your logo URL or local path
 
 # Title
 st.title("Johnson County Home Price Predictor")
@@ -85,7 +85,7 @@ def load_model(path='joco_rf_pipeline.joblib'):
 model = load_model()
 
 # 2. Sidebar inputs for features
-st.sidebar.image("/Users/alexandrogarcia/Documents/Real-World Case Studies/Real_estate_prototype/odyyn copy.png", width=200,  )  # replace with your logo URL or local path
+st.sidebar.image("odyyn copy.png", width=200,  )  # replace with your logo URL or local path
 st.sidebar.header("Input Features")
 bed = st.sidebar.slider('Bedrooms', min_value=1, max_value=6, value=3)
 bath = st.sidebar.slider('Bathrooms', min_value=1, max_value=5, value=2)
