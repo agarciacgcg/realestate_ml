@@ -4,6 +4,76 @@ import joblib
 import numpy as np
 import pandas as pd
 
+
+# --- Page Config ---
+st.set_page_config(
+    page_title="Odyyn's Insights - JoCo Home Price Predictor",
+    page_icon="🏠",
+    layout="centered"
+)
+
+# --- CSS for styling ---
+# --- Custom CSS Styling ---
+odyyn_primary_color = "#c10604"
+odyyn_secondary_color = "#04c9c8"
+custom_css = f"""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Ubbuntu:wght@400;500;700&display=swap');
+
+html, body, [class*="css"]  {{
+    font-family: 'Ubuntu', ubuntu, sans-serif;
+    color: #333;
+}}
+
+h1 {{
+    color: #800000;
+}}
+
+h2, h3 {{
+    color: {odyyn_secondary_color};
+}}
+
+.stButton button {{
+    background-color: {odyyn_primary_color};
+    color: white;
+    border-radius: 5px;
+}}
+
+.stButton button:hover {{
+    background-color: {odyyn_secondary_color};
+    color: black;
+    border-radius: 5px;
+}}
+
+.stSidebar {{
+    background-color:  #fdf5e6;
+}}
+
+.stnumber_input input {{
+    background-color: #fdf5e6;
+    color: #333;
+    border-radius: 5px;
+}}
+
+stNumber_input:hover {{
+    color: {odyyn_primary_color};
+}}
+
+st.slider {{
+    color: {odyyn_primary_color};
+}}
+
+footer {{
+    visibility: hidden;
+}}
+</style>
+"""
+
+st.markdown(custom_css, unsafe_allow_html=True)
+
+# --- Logo & Branded Header ---
+st.image("/Users/alexandrogarcia/Documents/Real-World Case Studies/Real_estate_prototype/odyyn copy.png", width=400,  )  # replace with your logo URL or local path
+
 # Title
 st.title("Johnson County Home Price Predictor")
 
@@ -15,6 +85,7 @@ def load_model(path='joco_rf_pipeline.joblib'):
 model = load_model()
 
 # 2. Sidebar inputs for features
+st.sidebar.image("/Users/alexandrogarcia/Documents/Real-World Case Studies/Real_estate_prototype/odyyn copy.png", width=200,  )  # replace with your logo URL or local path
 st.sidebar.header("Input Features")
 bed = st.sidebar.slider('Bedrooms', min_value=1, max_value=6, value=3)
 bath = st.sidebar.slider('Bathrooms', min_value=1, max_value=5, value=2)
@@ -72,6 +143,57 @@ if st.sidebar.button('Predict Price'):
 # 5. Optionally show raw input data
 with st.expander("Show input data"):
     st.write(input_df)
+
+st.title("How it works")
+st.text(
+    """
+This predictive model is powered by machine learning AI, a data-driven 
+technique that identifies hidden relationships in large datasets.
+Here's the simplified process we follow to build these models:
+
+1. Data Collection & Cleaning:
+   • We gather relevant data points—real estate listings, local demographics,
+     economic indicators, and market trends.
+   • We clean and enrich data (removing outliers, filling gaps, 
+     standardizing formats) for reliable results.
+
+2. Feature Engineering:
+   • We create meaningful predictive variables—like price per sq. ft.,
+     demographic income levels, or recent market growth rates—to help
+     the model recognize nuanced patterns.
+
+3. Model Training & Validation:
+   • We train machine-learning algorithms to predict home prices based on historical data.
+   • We rigorously validate models using cross-validation and unseen 
+     hold-out sets to ensure accurate and generalizable predictions.
+
+4. Deployment & Monitoring:
+   • Models are packaged into intuitive dashboards and APIs, allowing 
+     non-technical users to interact easily.
+   • Predictions are continuously monitored, and models updated 
+     regularly with new data to maintain accuracy.
+
+Applications beyond Real Estate
+-------------------------------
+• Construction & Project Management:
+   - Predict costs and timelines based on historical project data,
+     materials pricing trends, labor market fluctuations, and 
+     regional permits.
+   - Scenario analysis helps contractors adjust budgets and 
+     schedules proactively, significantly reducing project risks 
+     and budget overruns.
+
+• Digital Marketing & Customer Insights:
+   - Analyze customer behavior and market sentiment to forecast 
+     campaign success.
+   - Predict customer lifetime value, optimize marketing spend, 
+     and tailor advertising content based on granular audience 
+     segmentation.
+
+This model illustrates the transformative potential of machine learning 
+across industries—delivering rapid, reliable insights to elevate 
+decision-making, reduce risk, and optimize business outcomes."""
+)
 
 
 st.title("Why this matters")
