@@ -33,27 +33,23 @@ h2, h3 {{
     color: {odyyn_secondary_color};
 }}
 
-.stButton button {{
+.stForm button {{
     background-color: {odyyn_primary_color};
     color: white;
     border-radius: 5px;
 }}
 
-.stButton button:hover {{
+.stForm button:hover {{
     background-color: {odyyn_secondary_color};
     color: black;
     border-radius: 5px;
 }}
 
-.stSidebar {{
+.stForm {{
     background-color:  #fdf5e6;
 }}
 
-.stnumber_input input {{
-    background-color: #fdf5e6;
-    color: #333;
-    border-radius: 5px;
-}}
+
 
 stNumber_input:hover {{
     color: {odyyn_primary_color};
@@ -84,65 +80,59 @@ def load_model(path='joco_rf_pipeline.joblib'):
 
 model = load_model()
 
-# 2. Sidebar inputs for features
-st.sidebar.image("odyyn copy.png", width=200,  )  # replace with your logo URL or local path
-st.sidebar.header("Input Features")
-bed = st.sidebar.slider('Bedrooms', min_value=1, max_value=6, value=3)
-bath = st.sidebar.slider('Bathrooms', min_value=1, max_value=5, value=2)
-acre_lot = st.sidebar.number_input('Lot size (acres)', min_value=0.0, format="%.2f", value=0.2)
-house_size = st.sidebar.number_input('House size (sq ft)', min_value=300, max_value=10000, value=1500)
+# --- Inputs as a single-column form ---
+st.markdown("## Enter Property Details")
+with st.form("prediction_form"):
+    bed = st.slider('Bedrooms', min_value=1, max_value=6, value=3)
+    bath = st.slider('Bathrooms', min_value=1, max_value=5, value=2)
+    acre_lot = st.number_input('Lot size (acres)', min_value=0.0, format="%.2f", value=0.2)
+    house_size = st.number_input('House size (sq ft)', min_value=300, max_value=10000, value=1500)
 
-# Derived feature
-log_house_siz = np.log(house_size)
+    population = st.number_input('Population', min_value=1000, max_value=2000000, value=50000)
+    median_income = st.number_input('Median income', min_value=20000, max_value=200000, value=80000)
+    pct_bachelor = st.slider('Pct. Bachelor+', min_value=0.0, max_value=100.0, value=40.0)
+    num_schools = st.slider('Num. Public Schools', min_value=0, max_value=50, value=10)
 
-population = st.sidebar.number_input('Population', min_value=1000, max_value=200000, value=50000)
-median_income = st.sidebar.number_input('Median income', min_value=20000, max_value=200000, value=80000)
-pct_bachelor = st.sidebar.slider('Pct. Bachelor+', min_value=0.0, max_value=100.0, value=40.0)
-num_schools = st.sidebar.slider('Num. Public Schools', min_value=0, max_value=50, value=10)
+    City = st.selectbox('City', options=['Overland Park', 'Olathe', 'Shawnee', 'Leawood', 'Lenexa'])
+    Metro = st.selectbox('Metro Area', options=['Kansas City'])
 
-# Categorical inputs
-City = st.sidebar.selectbox('City', options=['Overland Park', 'Olathe', 'Shawnee', 'Leawood', 'Lenexa'])
-Metro = st.sidebar.selectbox('Metro Area', options=['Kansas City'])
+    submit = st.form_submit_button("Predict Price")
 
-# Interaction feature
-size_income = house_size * median_income
+if submit:
+    # Derived features
+    log_house_size = np.log(house_size)
+    size_income    = house_size * median_income
 
-# 3. Build DataFrame for prediction
-features = {
-    'bed': bed,
-    'bath': bath,
-    'acre_lot': acre_lot,
-    'house_size': house_size,
-    'log_house_size': log_house_siz,
-    'population': population,
-    'median_income': median_income,
-    'pct_bachelor_plus': pct_bachelor,
-    'num_public_schools': num_schools,
-    'City': City,
-    'Metro': Metro,
-    'size_income': size_income
-}
-input_df = pd.DataFrame([features])
-# 3.a Ensure all expected features are in the DataFrame
-#    model.named_steps['preprocess'] is your ColumnTransformer
-expected = model.named_steps['preprocess'].feature_names_in_
+    # Build DataFrame
+    features = {
+        'bed': bed,
+        'bath': bath,
+        'acre_lot': acre_lot,
+        'house_size': house_size,
+        'log_house_size': log_house_size,
+        'population': population,
+        'median_income': median_income,
+        'pct_bachelor_plus': pct_bachelor,
+        'num_public_schools': num_schools,
+        'City': City,
+        'Metro': Metro,
+        'size_income': size_income
+    }
+    input_df = pd.DataFrame([features])
 
-for col in expected:
-    if col not in input_df.columns:
-        input_df[col] = 0   # or fill with a median/default
+    # Ensure all trained columns exist
+    expected = model.named_steps['preprocess'].feature_names_in_
+    for col in expected:
+        if col not in input_df:
+            input_df[col] = 0
+    input_df = input_df[expected]
 
-# 3.b Reorder to exactly match training order
-input_df = input_df[expected]
-
-# 4. Predict
-if st.sidebar.button('Predict Price'):
-    pred_log = model.predict(input_df)[0]
+    # Predict and display
+    pred_log   = model.predict(input_df)[0]
     pred_price = np.exp(pred_log)
     st.metric(label="Predicted Price (USD)", value=f"${pred_price:,.2f}")
 
-# 5. Optionally show raw input data
-with st.expander("Show input data"):
-    st.write(input_df)
+
 
 st.title("How it works")
 st.text(
