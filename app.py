@@ -33,6 +33,9 @@ h2, h3 {{
     color: {odyyn_secondary_color};
 }}
 
+st.text {{
+  
+
 .stForm button {{
     background-color: {odyyn_primary_color};
     color: white;
@@ -49,7 +52,10 @@ h2, h3 {{
     background-color:  #fdf5e6;
 }}
 
-
+st.helper {{
+    color: {odyyn_primary_color};
+    size: 0.8em;
+}}
 
 stNumber_input:hover {{
     color: {odyyn_primary_color};
@@ -61,6 +67,11 @@ st.slider {{
 
 footer {{
     visibility: hidden;
+}}
+
+.help {{
+    font-size: 0.8em;
+    color: {odyyn_primary_color};
 }}
 </style>
 """
@@ -83,15 +94,16 @@ model = load_model()
 # --- Inputs as a single-column form ---
 st.markdown("## Enter Property Details")
 with st.form("prediction_form"):
-    bed = st.slider('Bedrooms', min_value=1, max_value=6, value=3)
-    bath = st.slider('Bathrooms', min_value=1, max_value=5, value=2)
-    acre_lot = st.number_input('Lot size (acres)', min_value=0.0, format="%.2f", value=0.2)
-    house_size = st.number_input('House size (sq ft)', min_value=300, max_value=10000, value=1500)
+    bed = st.slider('Bedrooms (Max 6 bedrooms', min_value=1, max_value=6, value=3, help="Number of bedrooms, max 6")
+    bath = st.slider('Bathrooms (Max 5 bathrooms)', min_value=1, max_value=5, value=2, help="Number of bathrooms, max 5")
+    # Acre lot size and house size
+    acre_lot = st.number_input('Lot size (acres, Max 5)', min_value=0.0, format="%.2f", value=0.2, help="An acre lot is 43,560 sq ft. Max 5 acres, e.g., 0.2")
+    house_size = st.number_input('House size (sq ft) (Max = 10,000)', min_value=300, max_value=10000, value=1500, help="Average home size is 1,500 sq ft. Max 10,000 sq ft, e.g., 1,500")
 
-    population = st.number_input('Population', min_value=1000, max_value=2000000, value=50000)
-    median_income = st.number_input('Median income', min_value=20000, max_value=200000, value=80000)
-    pct_bachelor = st.slider('Pct. Bachelor+', min_value=0.0, max_value=100.0, value=40.0)
-    num_schools = st.slider('Num. Public Schools', min_value=0, max_value=50, value=10)
+    population = st.number_input('Population (Max is 2,000,000)', min_value=1000, max_value=2000000, value=50000, help="Max 2 million")
+    median_income = st.number_input('Median income (Max is 1,000,000)', min_value=20000, max_value=1000000, value=80000, help="Max $1 million, e.g., $80,000")
+    pct_bachelor = st.slider('Pct. Bachelor+ (Percentage of population with a bachelor’s degree or higher)', min_value=0.0, max_value=100.0, value=40.0 , help="Percentage of population with a bachelor’s degree or higher")
+    num_schools = st.slider('Number of Public Schools', min_value=0, max_value=50, value=10, help="Max 50 public schools")
 
     City = st.selectbox('City', options=['Overland Park', 'Olathe', 'Shawnee', 'Leawood', 'Lenexa'])
     Metro = st.selectbox('Metro Area', options=['Kansas City'])
