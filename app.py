@@ -33,7 +33,7 @@ h2, h3 {{
     color: {odyyn_secondary_color};
 }}
 
-st.text {{
+
   
 
 .stForm button {{
