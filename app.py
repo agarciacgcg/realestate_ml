@@ -20,7 +20,7 @@ if "authenticated" not in st.session_state:
 if not st.session_state.authenticated:
     pwd = st.text_input("Enter the password to access the app", type="password")
     if st.button("Submit"):
-        if pwd == "odyyn":
+        if pwd == "odyynKC123!":
             st.session_state.authenticated = True
             st.success("Password is correct. You can now access the app.")
             if "balloons_shown" not in st.session_state:
