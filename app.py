@@ -1,16 +1,45 @@
-
 import streamlit as st
 import joblib
 import numpy as np
 import pandas as pd
 
-
-# --- Page Config ---
 st.set_page_config(
-    page_title="Odyyn's Insights - JoCo Home Price Predictor",
+    page_title="Odyyn's Raven - JoCo Home Price Predictor",
     page_icon="🏠",
     layout="centered"
 )
+
+# Logo
+st.image("odyyn copy.png", width=200)
+
+# Initialize our “authenticated” flag
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+# If not yet authenticated, show password prompt and stop further execution
+if not st.session_state.authenticated:
+    pwd = st.text_input("Enter the password to access the app", type="password")
+    if st.button("Submit"):
+        if pwd == "odyyn":
+            st.session_state.authenticated = True
+            st.success("Password is correct. You can now access the app.")
+            if "balloons_shown" not in st.session_state:
+              st.balloons()
+              st.session_state.balloons_shown = True
+        else:
+            st.error("Incorrect password. Please try again.")
+    if not st.session_state.authenticated:
+        st.stop()
+
+# --- Hide Streamlit's default footer and header ---
+hide_st_style = """
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+</style>
+"""
+st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # --- CSS for styling ---
 # --- Custom CSS Styling ---
@@ -78,7 +107,7 @@ footer {{
 
 st.markdown(custom_css, unsafe_allow_html=True)
 
-st.image("odyyn copy.png", width=400,  )  # replace with your logo URL or local path
+
 
 # Title
 st.title("Johnson County Home Price Predictor")
