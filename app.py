@@ -78,7 +78,6 @@ footer {{
 
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# --- Logo & Branded Header ---
 st.image("odyyn copy.png", width=400,  )  # replace with your logo URL or local path
 
 # Title
@@ -91,10 +90,28 @@ def load_model(path='joco_rf_pipeline.joblib'):
 
 model = load_model()
 
+st.title("Disclaimer!!")
+st.text(
+    """
+This model is a simplified version of a complex machine learning pipeline and is intended for educational purposes only. The predictions made by this model should not be used as the sole basis for any financial or real estate decisions. The model is based on historical data and may not accurately reflect current market conditions. 
+ 
+Always consult with a qualified real estate professional or financial advisor before making any investment decisions. The creators of this model do not assume any liability for decisions made based on its predictions. Use at your own risk.
+"""
+)
+st.title("How to use this app")
+st.text(
+    """
+This app allows you to predict the price of a home in Johnson County, Kansas, based on various features such as the number of bedrooms, bathrooms, lot size, house size, population, median income, percentage of bachelor+ degrees, number of public schools, city, and metro area.
+
+To use the app, simply adjust the sliders and input fields to enter the desired values for each feature. Once you have entered all the information, click the "Predict Price" button to see the predicted price of the home. The app will display the predicted price in USD.
+
+You can also view the model's performance metrics and learn more about how the model works by clicking on the "How it works" and "Why this matters" sections. """
+)
+
 # --- Inputs as a single-column form ---
 st.markdown("## Enter Property Details")
 with st.form("prediction_form"):
-    bed = st.slider('Bedrooms (Max 6 bedrooms', min_value=1, max_value=6, value=3, help="Number of bedrooms, max 6")
+    bed = st.slider('Bedrooms (Max 6 bedrooms)', min_value=1, max_value=6, value=3, help="Number of bedrooms, max 6")
     bath = st.slider('Bathrooms (Max 5 bathrooms)', min_value=1, max_value=5, value=2, help="Number of bathrooms, max 5")
     # Acre lot size and house size
     acre_lot = st.number_input('Lot size (acres, Max 5)', min_value=0.0, format="%.2f", value=0.2, help="An acre lot is 43,560 sq ft. Max 5 acres, e.g., 0.2")
@@ -146,8 +163,9 @@ if submit:
 
 
 
-st.title("How it works")
-st.text(
+if st.button("How it works"):
+  st.title("How it works")
+  st.text(
     """
 This predictive model is powered by machine learning AI, a data-driven 
 technique that identifies hidden relationships in large datasets.
@@ -196,34 +214,21 @@ This model illustrates the transformative potential of machine learning
 across industries—delivering rapid, reliable insights to elevate 
 decision-making, reduce risk, and optimize business outcomes."""
 )
+if st.button("Why this matters"): 
+  st.title("Why this matters")
 
+  st.text("""
+  • Faster, data-driven valuations – machine-learning models like the one behind this demo learn from thousands of Kansas-City-area deals and 50+ local features (size, income, education, market trends), letting you surface an evidence-based price in seconds rather than days.
 
-st.title("Why this matters")
+  • Accuracy that compounds – recent industry studies show up to 73 % of CRE firms already apply ML for decision-making, and more than 80 % plan to boost ML budgets in the next 2-3 years. Early adopters report valuation error reductions of 20-40 %.
 
-st.text("""
-• Faster, data-driven valuations – machine-learning models like the one behind
-  this demo learn from thousands of Kansas-City-area deals and 50+ local
-  features (size, income, education, market trends), letting you surface an
-  evidence-based price in seconds rather than days.
+  • Smarter risk management – by fusing census, permit and demographic signals, the model spots over- or under-priced assets long before they hit your books, helping investors and lenders avoid seven-figure mistakes.
 
-• Accuracy that compounds – recent industry studies show up to 73 % of CRE
-  firms already apply ML for decision-making, and more than 80 % plan to
-  boost ML budgets in the next 2-3 years. Early adopters report valuation
-  error reductions of 20-40 %.
+  • Competitive differentiation – clients increasingly expect Redfin- or Zillow-level instant estimates. Packaging your own ML pipeline behind a simple UI positions you as a tech-forward partner, not just another brokerage or contractor.
 
-• Smarter risk management – by fusing census, permit and demographic
-  signals, the model spots over- or under-priced assets long before they
-  hit your books, helping investors and lenders avoid seven-figure mistakes.
+  - A small, 5% improvement in predictive accuracy can save tens of thousands per transaction. On a $1M property, that’s potentially $50K of value generated
 
-• Competitive differentiation – clients increasingly expect Redfin- or
-  Zillow-level instant estimates. Packaging your own ML pipeline behind a
-  simple UI positions you as a tech-forward partner, not just another
-  brokerage or contractor.
-
-- A small, 5% improvement in predictive accuracy can save tens of thousands per transaction. On a $1M property, that’s potentially $50K of value generated
-
-Try adjusting the sliders on the left; each change re-runs the model in
-real time, showing how seemingly small differences (an extra bathroom, a
-higher-income zip code) move the projected sale price.
-""".strip())
-
+  Try adjusting the sliders on the left; each change re-runs the model in
+  real time, showing how seemingly small differences (an extra bathroom, a
+  higher-income zip code) move the projected sale price.
+  """.strip()) 
