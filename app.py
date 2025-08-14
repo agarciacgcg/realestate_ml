@@ -12,25 +12,6 @@ st.set_page_config(
 # Logo
 st.image("odyyn copy.png", width=200)
 
-# Initialize our “authenticated” flag
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-# If not yet authenticated, show password prompt and stop further execution
-if not st.session_state.authenticated:
-    pwd = st.text_input("Enter the password to access the app", type="password")
-    if st.button("Submit"):
-        if pwd == "odyynKC123!":
-            st.session_state.authenticated = True
-            st.success("Password is correct. You can now access the app.")
-            if "balloons_shown" not in st.session_state:
-              st.balloons()
-              st.session_state.balloons_shown = True
-        else:
-            st.error("Incorrect password. Please try again.")
-    if not st.session_state.authenticated:
-        st.stop()
-
 # --- Hide Streamlit's default footer and header ---
 hide_st_style = """
 <style>
