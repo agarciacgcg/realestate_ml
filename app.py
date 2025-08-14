@@ -1,244 +1,313 @@
-import streamlit as st
-import joblib
+# app.py
+import os
+import sys
+import platform
+import importlib
+from pathlib import Path
 import numpy as np
 import pandas as pd
+import joblib
+import streamlit as st
 
+# -------------------------------
+# Page setup
+# -------------------------------
 st.set_page_config(
     page_title="Odyyn's Raven - JoCo Home Price Predictor",
     page_icon="🏠",
     layout="centered"
 )
 
-# Logo
-st.image("odyyn copy.png", width=200)
+# -------------------------------
+# Brand / header
+# -------------------------------
+logo_path = Path("odyyn copy.png")
+if logo_path.exists():
+    st.image(str(logo_path), width=200)
 
-# --- Hide Streamlit's default footer and header ---
-hide_st_style = """
+# -------------------------------
+# Hide Streamlit chrome
+# -------------------------------
+st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
 header {visibility: hidden;}
+footer {visibility: hidden;}
 </style>
-"""
-st.markdown(hide_st_style, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-# --- CSS for styling ---
-# --- Custom CSS Styling ---
-odyyn_primary_color = "#c10604"
-odyyn_secondary_color = "#04c9c8"
-custom_css = f"""
+# -------------------------------
+# Custom CSS (fixed fonts/selectors)
+# -------------------------------
+odyyn_primary = "#c10604"
+odyyn_secondary = "#04c9c8"
+st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Ubbuntu:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap');
 
-html, body, [class*="css"]  {{
+html, body, [class*="css"] {{
     font-family: 'Ubuntu', ubuntu, sans-serif;
     color: #333;
 }}
 
-h1 {{
-    color: #800000;
+h1 {{ color: #800000; }}
+h2, h3 {{ color: {odyyn_secondary}; }}
+
+div.stForm > div {{
+    background-color: #fdf5e6;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
 }}
 
-h2, h3 {{
-    color: {odyyn_secondary_color};
-}}
-
-
-  
-
-.stForm button {{
-    background-color: {odyyn_primary_color};
+div.stForm button[kind="primary"] {{
+    background-color: {odyyn_primary};
     color: white;
-    border-radius: 5px;
+    border-radius: 6px;
+    border: none;
 }}
 
-.stForm button:hover {{
-    background-color: {odyyn_secondary_color};
+div.stForm button[kind="primary"]:hover {{
+    background-color: {odyyn_secondary};
     color: black;
-    border-radius: 5px;
 }}
-
-.stForm {{
-    background-color:  #fdf5e6;
-}}
-
-st.helper {{
-    color: {odyyn_primary_color};
-    size: 0.8em;
-}}
-
-stNumber_input:hover {{
-    color: {odyyn_primary_color};
-}}
-
-st.slider {{
-    color: {odyyn_primary_color};
-}}
-
-footer {{
-    visibility: hidden;
-}}
-
 .help {{
-    font-size: 0.8em;
-    color: {odyyn_primary_color};
+    font-size: 0.85em;
+    color: {odyyn_primary};
 }}
 </style>
-"""
+""", unsafe_allow_html=True)
 
-st.markdown(custom_css, unsafe_allow_html=True)
-
-
-
-# Title
+# -------------------------------
+# Title and intro
+# -------------------------------
 st.title("Johnson County Home Price Predictor")
 
-# 1. Load the trained pipeline
-@st.cache_resource
-def load_model(path='joco_rf_pipeline.joblib'):
-    return joblib.load(path)
+with st.expander("Disclaimer"):
+    st.write("""
+This model is a simplified learning demo. Do not use it as the sole basis for
+financial or real-estate decisions. Always consult qualified professionals.
+Use at your own risk.
+""")
+
+with st.expander("How to use this app"):
+    st.write("""
+Adjust the property inputs, then click Predict Price to get an estimate. Fields
+include bedrooms, bathrooms, lot size, home size, local demographics, city and metro.
+The underlying model was trained on historical data and may not reflect current market conditions.
+""")
+
+# -------------------------------
+# Helpers for robust model loading
+# -------------------------------
+def _maybe_import_custom_module():
+    """
+    If you trained with custom transformers, set CUSTOM_CLASSES_MODULE env var
+    to a module name (on sys.path) where those classes/functions are defined.
+    Example:
+      export CUSTOM_CLASSES_MODULE="model_custom"
+    """
+    modname = os.getenv("CUSTOM_CLASSES_MODULE")
+    if not modname:
+        return None
+    try:
+        return importlib.import_module(modname)
+    except Exception:
+        # Surface a non-blocking warning; model load might still succeed
+        st.sidebar.warning(f"Could not import CUSTOM_CLASSES_MODULE '{modname}'.")
+        return None
+
+def _resolve_model_path():
+    """
+    Priority:
+      1) st.secrets["model_path"]
+      2) env MODEL_PATH
+      3) local files: joco_rf_pipeline.skops, then joco_rf_pipeline.joblib
+    """
+    secrets_path = st.secrets.get("model_path") if hasattr(st, "secrets") else None
+    env_path = os.getenv("MODEL_PATH")
+    candidates = [secrets_path, env_path, "joco_rf_pipeline.skops", "joco_rf_pipeline.joblib"]
+    for p in candidates:
+        if p and Path(p).exists():
+            return str(p)
+    return None
+
+def _env_diagnostics():
+    import sklearn
+    return dict(
+        python=sys.version.replace("\n", " "),
+        platform=platform.platform(),
+        sklearn=sklearn.__version__,
+        pandas=pd.__version__,
+        numpy=np.__version__,
+        joblib=joblib.__version__,
+    )
+
+# -------------------------------
+# Load model (joblib with fallback to skops)
+# -------------------------------
+@st.cache_resource(show_spinner="Loading model...")
+def load_model():
+    _maybe_import_custom_module()  # no-op if not set
+    model_path = _resolve_model_path()
+    if not model_path:
+        st.error(
+            "No model file found. Place joco_rf_pipeline.skops or joco_rf_pipeline.joblib "
+            "in the app directory, or set MODEL_PATH / secrets['model_path']."
+        )
+        st.stop()
+
+    # Prefer skops for portability if extension is .skops
+    path = Path(model_path)
+    if path.suffix.lower() == ".skops":
+        try:
+            from skops import io as skio
+        except Exception:
+            st.error(
+                "Model is in .skops format but 'skops' is not installed. "
+                "Add 'skops' to requirements.txt and redeploy."
+            )
+            st.stop()
+        try:
+            return skio.load(str(path))
+        except Exception as e:
+            st.error("Failed to load .skops model.")
+            st.exception(e)
+            st.stop()
+
+    # Else try joblib
+    try:
+        return joblib.load(str(path))
+    except AttributeError as e:
+        st.error(
+            "The saved model references a class/function that isn't importable in this environment. "
+            "If you trained with custom transformers, set CUSTOM_CLASSES_MODULE to the module where "
+            "they are defined, or re-save the model without lambdas / notebook-local classes."
+        )
+        st.code("\n".join([f"{k}: {v}" for k, v in _env_diagnostics().items()]))
+        st.exception(e)
+        st.stop()
+    except Exception as e:
+        st.error("Failed to load joblib model.")
+        st.code("\n".join([f"{k}: {v}" for k, v in _env_diagnostics().items()]))
+        st.exception(e)
+        st.stop()
 
 model = load_model()
 
-st.title("Disclaimer!!")
-st.text(
-    """
-This model is a simplified version of a complex machine learning pipeline and is intended for educational purposes only. The predictions made by this model should not be used as the sole basis for any financial or real estate decisions. The model is based on historical data and may not accurately reflect current market conditions. 
- 
-Always consult with a qualified real estate professional or financial advisor before making any investment decisions. The creators of this model do not assume any liability for decisions made based on its predictions. Use at your own risk.
-"""
-)
-st.title("How to use this app")
-st.text(
-    """
-This app allows you to predict the price of a home in Johnson County, Kansas, based on various features such as the number of bedrooms, bathrooms, lot size, house size, population, median income, percentage of bachelor+ degrees, number of public schools, city, and metro area.
-
-To use the app, simply adjust the sliders and input fields to enter the desired values for each feature. Once you have entered all the information, click the "Predict Price" button to see the predicted price of the home. The app will display the predicted price in USD.
-
-You can also view the model's performance metrics and learn more about how the model works by clicking on the "How it works" and "Why this matters" sections. """
-)
-
-# --- Inputs as a single-column form ---
+# -------------------------------
+# Input form
+# -------------------------------
 st.markdown("## Enter Property Details")
 with st.form("prediction_form"):
-    bed = st.slider('Bedrooms (Max 6 bedrooms)', min_value=1, max_value=6, value=3, help="Number of bedrooms, max 6")
-    bath = st.slider('Bathrooms (Max 5 bathrooms)', min_value=1, max_value=5, value=2, help="Number of bathrooms, max 5")
-    # Acre lot size and house size
-    acre_lot = st.number_input('Lot size (acres, Max 5)', min_value=0.0, format="%.2f", value=0.2, help="An acre lot is 43,560 sq ft. Max 5 acres, e.g., 0.2")
-    house_size = st.number_input('House size (sq ft) (Max = 10,000)', min_value=300, max_value=10000, value=1500, help="Average home size is 1,500 sq ft. Max 10,000 sq ft, e.g., 1,500")
+    bed = st.slider('Bedrooms (max 6)', 1, 6, 3, help="Total bedrooms")
+    bath = st.slider('Bathrooms (max 5)', 1, 5, 2, help="Total bathrooms")
 
-    population = st.number_input('Population (Max is 2,000,000)', min_value=1000, max_value=2000000, value=50000, help="Max 2 million")
-    median_income = st.number_input('Median income (Max is 1,000,000)', min_value=20000, max_value=1000000, value=80000, help="Max $1 million, e.g., $80,000")
-    pct_bachelor = st.slider('Pct. Bachelor+ (Percentage of population with a bachelor’s degree or higher)', min_value=0.0, max_value=100.0, value=40.0 , help="Percentage of population with a bachelor’s degree or higher")
-    num_schools = st.slider('Number of Public Schools', min_value=0, max_value=50, value=10, help="Max 50 public schools")
+    acre_lot = st.number_input(
+        'Lot size (acres, max 5)',
+        min_value=0.0, max_value=5.0, value=0.2, step=0.01,
+        help="1 acre = 43,560 sq ft"
+    )
+    house_size = st.number_input(
+        'House size (sq ft, max 10,000)',
+        min_value=300, max_value=10000, value=1500, step=50,
+        help="Average home ~1,500 sq ft"
+    )
+
+    population = st.number_input(
+        'Population (max 2,000,000)', min_value=1000, max_value=2_000_000, value=50_000, step=1000
+    )
+    median_income = st.number_input(
+        'Median income (USD, max 1,000,000)', min_value=20_000, max_value=1_000_000, value=80_000, step=1_000
+    )
+    pct_bachelor = st.slider(
+        'Pct. Bachelor+',
+        min_value=0.0, max_value=100.0, value=40.0, step=0.5,
+        help="Share of population with a bachelor’s degree or higher (percent)"
+    )
+    num_schools = st.slider(
+        'Number of Public Schools', min_value=0, max_value=50, value=10
+    )
 
     City = st.selectbox('City', options=['Overland Park', 'Olathe', 'Shawnee', 'Leawood', 'Lenexa'])
     Metro = st.selectbox('Metro Area', options=['Kansas City'])
 
-    submit = st.form_submit_button("Predict Price")
+    submit = st.form_submit_button("Predict Price", type="primary")
 
-if submit:
-    # Derived features
-    log_house_size = np.log(house_size)
-    size_income    = house_size * median_income
+# -------------------------------
+# Build features and predict
+# -------------------------------
+def build_input_df():
+    # Derived features (keep consistent with training)
+    log_house_size = float(np.log(max(house_size, 1)))  # guard log(0)
+    size_income = float(house_size) * float(median_income)
 
-    # Build DataFrame
     features = {
         'bed': bed,
         'bath': bath,
-        'acre_lot': acre_lot,
-        'house_size': house_size,
+        'acre_lot': float(acre_lot),
+        'house_size': int(house_size),
         'log_house_size': log_house_size,
-        'population': population,
-        'median_income': median_income,
-        'pct_bachelor_plus': pct_bachelor,
-        'num_public_schools': num_schools,
+        'population': int(population),
+        'median_income': int(median_income),
+        'pct_bachelor_plus': float(pct_bachelor),
+        'num_public_schools': int(num_schools),
         'City': City,
         'Metro': Metro,
-        'size_income': size_income
+        'size_income': size_income,
     }
-    input_df = pd.DataFrame([features])
+    return pd.DataFrame([features])
 
-    # Ensure all trained columns exist
-    expected = model.named_steps['preprocess'].feature_names_in_
-    for col in expected:
-        if col not in input_df:
-            input_df[col] = 0
-    input_df = input_df[expected]
+def expected_input_columns(trained_model, fallback_cols):
+    # Try common places where sklearn stores raw input feature names
+    # 1) named step 'preprocess' (e.g., ColumnTransformer)
+    pre = None
+    if hasattr(trained_model, "named_steps"):
+        pre = trained_model.named_steps.get("preprocess")
+    if pre is not None and hasattr(pre, "feature_names_in_"):
+        return list(pre.feature_names_in_)
+    # 2) pipeline / estimator feature_names_in_
+    if hasattr(trained_model, "feature_names_in_"):
+        return list(trained_model.feature_names_in_)
+    # 3) give up: use what we built now
+    return list(fallback_cols)
 
-    # Predict and display
-    pred_log   = model.predict(input_df)[0]
-    pred_price = np.exp(pred_log)
-    st.metric(label="Predicted Price (USD)", value=f"${pred_price:,.2f}")
+if submit:
+    input_df = build_input_df()
+    exp_cols = expected_input_columns(model, input_df.columns)
 
+    # Ensure all expected columns exist; fill missing numerics with 0, strings with empty
+    for col in exp_cols:
+        if col not in input_df.columns:
+            # naive fill heuristic; customize if your training expects different defaults
+            input_df[col] = 0 if col not in ("City", "Metro") else ""
+    # Reorder to match training
+    input_df = input_df.reindex(columns=exp_cols)
 
+    # Predict
+    try:
+        pred_log = float(model.predict(input_df)[0])
+        pred_price = float(np.exp(pred_log))
+        # Basic sanity clamp for display only
+        if not np.isfinite(pred_price) or pred_price < 0:
+            raise ValueError("Invalid prediction value.")
+        st.metric(label="Predicted Price (USD)", value=f"${pred_price:,.2f}")
+    except Exception as e:
+        st.error("Prediction failed. See details below.")
+        st.exception(e)
 
-if st.button("How it works"):
-  st.title("How it works")
-  st.text(
-    """
-This predictive model is powered by machine learning AI, a data-driven 
-technique that identifies hidden relationships in large datasets.
-Here's the simplified process we follow to build these models:
+# -------------------------------
+# Additional info panes
+# -------------------------------
+with st.expander("Why this matters"):
+    st.write("""
+• Faster, data-driven valuations — produce evidence-based estimates in seconds.  
+• Accuracy compounds — models can improve as you add more recent, high-quality data.  
+• Smarter risk management — blend property and demographic signals to flag mispricing early.  
+• Differentiation — offering instant estimates positions you as tech-forward.
+""")
 
-1. Data Collection & Cleaning:
-   • We gather relevant data points—real estate listings, local demographics,
-     economic indicators, and market trends.
-   • We clean and enrich data (removing outliers, filling gaps, 
-     standardizing formats) for reliable results.
-
-2. Feature Engineering:
-   • We create meaningful predictive variables—like price per sq. ft.,
-     demographic income levels, or recent market growth rates—to help
-     the model recognize nuanced patterns.
-
-3. Model Training & Validation:
-   • We train machine-learning algorithms to predict home prices based on historical data.
-   • We rigorously validate models using cross-validation and unseen 
-     hold-out sets to ensure accurate and generalizable predictions.
-
-4. Deployment & Monitoring:
-   • Models are packaged into intuitive dashboards and APIs, allowing 
-     non-technical users to interact easily.
-   • Predictions are continuously monitored, and models updated 
-     regularly with new data to maintain accuracy.
-
-Applications beyond Real Estate
--------------------------------
-• Construction & Project Management:
-   - Predict costs and timelines based on historical project data,
-     materials pricing trends, labor market fluctuations, and 
-     regional permits.
-   - Scenario analysis helps contractors adjust budgets and 
-     schedules proactively, significantly reducing project risks 
-     and budget overruns.
-
-• Digital Marketing & Customer Insights:
-   - Analyze customer behavior and market sentiment to forecast 
-     campaign success.
-   - Predict customer lifetime value, optimize marketing spend, 
-     and tailor advertising content based on granular audience 
-     segmentation.
-
-This model illustrates the transformative potential of machine learning 
-across industries—delivering rapid, reliable insights to elevate 
-decision-making, reduce risk, and optimize business outcomes."""
-)
-if st.button("Why this matters"): 
-  st.title("Why this matters")
-
-  st.text("""
-  • Faster, data-driven valuations – machine-learning models like the one behind this demo learn from thousands of Kansas-City-area deals and 50+ local features (size, income, education, market trends), letting you surface an evidence-based price in seconds rather than days.
-
-  • Accuracy that compounds – recent industry studies show up to 73 % of CRE firms already apply ML for decision-making, and more than 80 % plan to boost ML budgets in the next 2-3 years. Early adopters report valuation error reductions of 20-40 %.
-
-  • Smarter risk management – by fusing census, permit and demographic signals, the model spots over- or under-priced assets long before they hit your books, helping investors and lenders avoid seven-figure mistakes.
-
-  • Competitive differentiation – clients increasingly expect Redfin- or Zillow-level instant estimates. Packaging your own ML pipeline behind a simple UI positions you as a tech-forward partner, not just another brokerage or contractor.
-
-  - A small, 5% improvement in predictive accuracy can save tens of thousands per transaction. On a $1M property, that’s potentially $50K of value generated
-
-  Try adjusting the sliders on the left; each change re-runs the model in
-  real time, showing how seemingly small differences (an extra bathroom, a
-  higher-income zip code) move the projected sale price.
-  """.strip()) 
+with st.sidebar:
+    st.subheader("Environment")
+    diag = _env_diagnostics()
+    st.code("\n".join([f"{k}: {v}" for k, v in diag.items()]))
+    st.caption("If loading fails with AttributeError, set CUSTOM_CLASSES_MODULE to the module where any custom transformers are defined, or re-export the model using named, importable functions/classes (no lambdas).")
